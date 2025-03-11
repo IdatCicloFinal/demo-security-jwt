@@ -1,7 +1,6 @@
 package pe.edu.idat.demo_security_jwt.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,8 +20,28 @@ public class FiltroJWTAuthorization extends OncePerRequestFilter {
     private final String KEY = "@idat2025";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+        try{
+            if(validarUsoDeToken(request)){
+                Claims claims = validarToken(request);
+                if(claims.get("Authorities") != null){
+                    cargarAutorizaciones(claims);
+                }else
+                    SecurityContextHolder.clearContext();
+            }else {
+                SecurityContextHolder.clearContext();
+            }
+            filterChain.doFilter(request, response);
+        }catch (ExpiredJwtException | UnsupportedJwtException
+                | MalformedJwtException ex){
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            ((HttpServletResponse)response).sendError(
+                    HttpServletResponse.SC_FORBIDDEN,
+                    ex.getMessage());
+        }
     }
 
     private void cargarAutorizaciones(Claims claims){
